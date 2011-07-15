@@ -31,7 +31,6 @@ class Game():
     def create_shape(self):
         return Shape(self.canvas)
 
-
 class Shape:
     BOX_SIZE = 20
     START_POINT = Game.WIDTH / 2 / BOX_SIZE * BOX_SIZE - BOX_SIZE
@@ -62,14 +61,29 @@ class Shape:
     def move(self, canvas, x, y):
         '''Move this shape (x, y) boxes.'''
         for box in self.boxes:
-            if Game.HEIGHT in canvas.coords(box):
+            coords = canvas.coords(box)
+            
+            # Return False if shape is at bottom of screen
+            if coords[3] == Game.HEIGHT:
                 return False
+
+            # Return False if moving box (x, y) would overlap another box
+            overlap = set(canvas.find_overlapping(
+                    (coords[0] + coords[2]) / 2 + x * Shape.BOX_SIZE, 
+                    (coords[1] + coords[3]) / 2 + y * Shape.BOX_SIZE, 
+                    (coords[0] + coords[2]) / 2 + x * Shape.BOX_SIZE,
+                    (coords[1] + coords[3]) / 2 + y * Shape.BOX_SIZE 
+                    ))
+            other_items = set(canvas.find_all()) - set(self.boxes)
+            if overlap & other_items: return False
+        
+        # Move the boxes
         for box in self.boxes:
             canvas.move(box, x * Shape.BOX_SIZE, y * Shape.BOX_SIZE)
         return True
 
     def fall(self, canvas):
-        '''Convenience function to move one box down.'''
+        '''Convenience function to move a shape one box-length down.'''
         return self.move(canvas, 0, 1)
 
 if __name__ == "__main__":
