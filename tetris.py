@@ -16,25 +16,21 @@ class Game():
                 height=Game.HEIGHT)
         self.canvas.pack()
 
-        # Create a first shape, start the timer, and start the app
-        self.current_shape = Shape(self.canvas)
+        # Create a first shape
+        self.current_shape = self.create_shape()
+
+        # Start the timer and the GUI
         self.timer()
         self.root.mainloop()
     
     def timer(self):
-        move = True
         self.root.after(Game.SPEED, self.timer)
+        if not self.current_shape.fall(self.canvas):
+            self.current_shape = self.create_shape()
+        
+    def create_shape(self):
+        return Shape(self.canvas)
 
-        for box in self.current_shape.boxes:
-            # Stop if you reach the bottom of the window
-            if Game.HEIGHT in self.canvas.coords(box):
-                move = False
-
-        for box in self.current_shape.boxes:
-            if move == True: self.canvas.move(box, 0, 20)
-
-        # If you stopped, make a new shape
-        if move == False: self.current_shape = Shape(self.canvas)
 
 class Shape:
     BOX_SIZE = 20
@@ -62,6 +58,19 @@ class Shape:
                 point[1] * Shape.BOX_SIZE + Shape.BOX_SIZE,
                 fill=self.color)
             self.boxes.append(box)
+
+    def move(self, canvas, x, y):
+        '''Move this shape (x, y) boxes.'''
+        for box in self.boxes:
+            if Game.HEIGHT in canvas.coords(box):
+                return False
+        for box in self.boxes:
+            canvas.move(box, x * Shape.BOX_SIZE, y * Shape.BOX_SIZE)
+        return True
+
+    def fall(self, canvas):
+        '''Convenience function to move one box down.'''
+        return self.move(canvas, 0, 1)
 
 if __name__ == "__main__":
     game = Game()
