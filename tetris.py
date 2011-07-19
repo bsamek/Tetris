@@ -44,16 +44,10 @@ class Game():
         return Shape(self.canvas)
 
     def handle_events(self, event):
-        '''Handle all user events.
-        
-        TODO Prevent shapes from exiting side of screen
-        TODO Give user an extra second to slide a piece underneath another
-        
-        '''
+        '''Handle all user events.'''
         if event.keysym == "Left": self.current_shape.move(-1, 0)
         if event.keysym == "Right": self.current_shape.move(1, 0)
         if event.keysym == "Down": self.current_shape.move(0, 1)
-        print event.keysym
 
 class Shape:
     '''Defines a tetris shape.'''
@@ -97,21 +91,21 @@ class Shape:
                 fill=self.color)
             self.boxes.append(box)
 
-    def move(self, x, y):
-        '''Move this shape (x, y) boxes.
-
-        For each box in the list self.boxes, get its coordinates. If the box is
-        at the bottom of the screen, return False. If moving the box would
-        cause it to overlap an existing shape, return False. If all boxes pass
-        these tests, move them all (x, y) * BOX_SIZE and return True.
-
+    def _can_move(self, x, y):
+        '''Check if the shape can move (x, y).
+        
+        For each box in the list self.boxes, get its coordinates. If moving
+        the box would cause it to overrun the screen or overlap an existing 
+        shape, return False. If all boxes pass these tests, return True.
+        
         '''
         for box in self.boxes:
             coords = self.canvas.coords(box)
             
-            # Returns False if shape is at bottom of screen
-            if coords[3] == Game.HEIGHT:
-                return False
+            # Returns False if moving the box would overrun the screen
+            if coords[3] == Game.HEIGHT and y == 1: return False
+            if coords[0] == 0 and x == -1: return False
+            if coords[2] == Game.WIDTH and x == 1: return False
 
             # Returns False if moving box (x, y) would overlap another box
             overlap = set(self.canvas.find_overlapping(
@@ -122,15 +116,26 @@ class Shape:
                     ))
             other_items = set(self.canvas.find_all()) - set(self.boxes)
             if overlap & other_items: return False
-        
-        # Moves the boxes
-        for box in self.boxes:
-            self.canvas.move(box, x * Shape.BOX_SIZE, y * Shape.BOX_SIZE)
+
         return True
 
+    def move(self, x, y):
+        '''Moves this shape (x, y) boxes.'''
+        if not self._can_move(x, y): 
+            return False         
+        else:
+            for box in self.boxes: 
+                self.canvas.move(box, x * Shape.BOX_SIZE, y * Shape.BOX_SIZE)
+            return True
+
     def fall(self):
-        '''Convenience function to move a shape one box-length down.'''
-        return self.move(0, 1)
+        '''Moves this shape one box-length down.'''
+        if not self._can_move(0, 1):
+            return False
+        else:
+            for box in self.boxes:
+                self.canvas.move(box, 0 * Shape.BOX_SIZE, 1 * Shape.BOX_SIZE)
+            return True
 
 if __name__ == "__main__":
     game = Game()
