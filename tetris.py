@@ -48,6 +48,7 @@ class Game():
         if event.keysym == "Left": self.current_shape.move(-1, 0)
         if event.keysym == "Right": self.current_shape.move(1, 0)
         if event.keysym == "Down": self.current_shape.move(0, 1)
+        if event.keysym == "Up": self.current_shape.rotate()
 
 class Shape:
     '''Defines a tetris shape.'''
@@ -136,6 +137,18 @@ class Shape:
             for box in self.boxes:
                 self.canvas.move(box, 0 * Shape.BOX_SIZE, 1 * Shape.BOX_SIZE)
             return True
+
+    def rotate(self):
+        '''Rotates the shape clockwise.'''
+        boxes = self.boxes[:]
+        pivot = boxes.pop(2)
+        pivot_coords = self.canvas.coords(pivot)
+
+        for box in boxes:
+            box_coords = self.canvas.coords(box)
+            x = box_coords[0] - pivot_coords[0]
+            y = box_coords[1] - pivot_coords[1]
+            self.canvas.move(box, -x-y, x-y)
 
 if __name__ == "__main__":
     game = Game()
