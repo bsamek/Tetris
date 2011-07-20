@@ -144,11 +144,34 @@ class Shape:
         pivot = boxes.pop(2)
         pivot_coords = self.canvas.coords(pivot)
 
+        #TODO This for loop contains code very similar to _can_move. Refactor.
         for box in boxes:
-            box_coords = self.canvas.coords(box)
-            x = box_coords[0] - pivot_coords[0]
-            y = box_coords[1] - pivot_coords[1]
+            coords = self.canvas.coords(box)
+            x = coords[0] - pivot_coords[0]
+            y = coords[1] - pivot_coords[1]
+            
+            # Returns False if moving the box would overrun the screen
+            if coords[3] + x - y > Game.HEIGHT: return False
+            if coords[0] - x - y <  0: return False
+            if coords[2] - x -y > Game.WIDTH: return False
+
+            # Returns False if moving box (x, y) would overlap another box
+            overlap = set(self.canvas.find_overlapping(
+                    (coords[0] + coords[2]) / 2 - x - y, 
+                    (coords[1] + coords[3]) / 2 + x - y, 
+                    (coords[0] + coords[2]) / 2 - x - y,
+                    (coords[1] + coords[3]) / 2 + x - y
+                    ))
+            other_items = set(self.canvas.find_all()) - set(self.boxes)
+            if overlap & other_items: return False
+
+        for box in boxes:
+            coords = self.canvas.coords(box)
+            x = coords[0] - pivot_coords[0]
+            y = coords[1] - pivot_coords[1]
             self.canvas.move(box, -x-y, x-y)
+
+        return True
 
 if __name__ == "__main__":
     game = Game()
