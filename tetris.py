@@ -92,37 +92,39 @@ class Shape:
                 fill=self.color)
             self.boxes.append(box)
 
-    def _can_move(self, x, y):
-        '''Check if the shape can move (x, y).
+    def _can_move_box(self, box, x, y):
+        '''Check if box can move (x, y) boxes.'''
+        x = x * Shape.BOX_SIZE
+        y = y * Shape.BOX_SIZE
+        coords = self.canvas.coords(box)
         
-        For each box in the list self.boxes, get its coordinates. If moving
-        the box would cause it to overrun the screen or overlap an existing 
-        shape, return False. If all boxes pass these tests, return True.
-        
-        '''
-        for box in self.boxes:
-            coords = self.canvas.coords(box)
-            
-            # Returns False if moving the box would overrun the screen
-            if coords[3] == Game.HEIGHT and y == 1: return False
-            if coords[0] == 0 and x == -1: return False
-            if coords[2] == Game.WIDTH and x == 1: return False
+        # Returns False if moving the box would overrun the screen
+        if coords[3] + y > Game.HEIGHT: return False
+        if coords[0] + x < 0: return False
+        if coords[2] + x > Game.WIDTH: return False
 
-            # Returns False if moving box (x, y) would overlap another box
-            overlap = set(self.canvas.find_overlapping(
-                    (coords[0] + coords[2]) / 2 + x * Shape.BOX_SIZE, 
-                    (coords[1] + coords[3]) / 2 + y * Shape.BOX_SIZE, 
-                    (coords[0] + coords[2]) / 2 + x * Shape.BOX_SIZE,
-                    (coords[1] + coords[3]) / 2 + y * Shape.BOX_SIZE 
-                    ))
-            other_items = set(self.canvas.find_all()) - set(self.boxes)
-            if overlap & other_items: return False
+        # Returns False if moving box (x, y) would overlap another box
+        overlap = set(self.canvas.find_overlapping(
+                (coords[0] + coords[2]) / 2 + x, 
+                (coords[1] + coords[3]) / 2 + y, 
+                (coords[0] + coords[2]) / 2 + x,
+                (coords[1] + coords[3]) / 2 + y
+                ))
+        other_items = set(self.canvas.find_all()) - set(self.boxes)
+        if overlap & other_items: return False
 
         return True
 
+
+    def _can_move_shape(self, x, y):
+        '''Check if the shape can move (x, y) boxes.'''
+        for box in self.boxes:
+            if not self._can_move_box(box, x, y): return False
+        return True
+            
     def move(self, x, y):
         '''Moves this shape (x, y) boxes.'''
-        if not self._can_move(x, y): 
+        if not self._can_move_shape(x, y): 
             return False         
         else:
             for box in self.boxes: 
@@ -131,7 +133,7 @@ class Shape:
 
     def fall(self):
         '''Moves this shape one box-length down.'''
-        if not self._can_move(0, 1):
+        if not self._can_move_shape(0, 1):
             return False
         else:
             for box in self.boxes:
@@ -142,34 +144,29 @@ class Shape:
         '''Rotates the shape clockwise.'''
         boxes = self.boxes[:]
         pivot = boxes.pop(2)
-        pivot_coords = self.canvas.coords(pivot)
 
-        #TODO This for loop contains code very similar to _can_move. Refactor.
+        def get_move_coords(box):
+            '''Return (x, y) boxes needed to rotate a box around the pivot.'''
+            box_coords = self.canvas.coords(box)
+            pivot_coords = self.canvas.coords(pivot)
+            x_diff = box_coords[0] - pivot_coords[0]
+            y_diff = box_coords[1] - pivot_coords[1]
+            x_move = (- x_diff - y_diff) / self.BOX_SIZE
+            y_move = (x_diff - y_diff) / self.BOX_SIZE
+            return x_move, y_move
+
+        # Check if shape can legally move
         for box in boxes:
-            coords = self.canvas.coords(box)
-            x = coords[0] - pivot_coords[0]
-            y = coords[1] - pivot_coords[1]
+            x_move, y_move = get_move_coords(box)
+            if not self._can_move_box(box, x_move, y_move): 
+                return False
             
-            # Returns False if moving the box would overrun the screen
-            if coords[3] + x - y > Game.HEIGHT: return False
-            if coords[0] - x - y <  0: return False
-            if coords[2] - x -y > Game.WIDTH: return False
-
-            # Returns False if moving box (x, y) would overlap another box
-            overlap = set(self.canvas.find_overlapping(
-                    (coords[0] + coords[2]) / 2 - x - y, 
-                    (coords[1] + coords[3]) / 2 + x - y, 
-                    (coords[0] + coords[2]) / 2 - x - y,
-                    (coords[1] + coords[3]) / 2 + x - y
-                    ))
-            other_items = set(self.canvas.find_all()) - set(self.boxes)
-            if overlap & other_items: return False
-
+        # Move shape
         for box in boxes:
-            coords = self.canvas.coords(box)
-            x = coords[0] - pivot_coords[0]
-            y = coords[1] - pivot_coords[1]
-            self.canvas.move(box, -x-y, x-y)
+            x_move, y_move = get_move_coords(box)
+            self.canvas.move(box, 
+                    x_move * self.BOX_SIZE, 
+                    y_move * self.BOX_SIZE)
 
         return True
 
