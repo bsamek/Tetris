@@ -1,7 +1,8 @@
-import Tkinter as tk
 from Tkinter import Canvas, Label, Tk
 import tkMessageBox
+
 from random import choice
+from collections import Counter
 
 class Game():
     WIDTH = 300
@@ -15,9 +16,12 @@ class Game():
         loop.
 
         '''
+        #TODO start() needs to be refactored so that the creation of the
+        # window, label, and canvas are independent from setting them to
+        # defaults and starting the game.
         self.level = 1
         self.score = 0
-        self.speed = 10
+        self.speed = 500
         self.create_new_game = True
 
         self.root = Tk()
@@ -50,10 +54,12 @@ class Game():
             self.create_new_game = False
 
         if not self.current_shape.fall():
+            self.remove_complete_lines()
+
             self.current_shape = Shape(self.canvas)
-            if self._is_game_over(): 
+            if self.is_game_over(): 
                 self.create_new_game = True
-                self._game_over()
+                self.game_over()
 
         self.root.after(self.speed, self.timer)
 
@@ -64,18 +70,44 @@ class Game():
         if event.keysym == "Down": self.current_shape.move(0, 1)
         if event.keysym == "Up": self.current_shape.rotate()
 
-    def _is_game_over(self):
+    def is_game_over(self):
         '''Check if a newly created shape is able to fall.
 
         If it can't fall, then the game is over.
 
         '''
         for box in self.current_shape.boxes:
-            if not self.current_shape._can_move_box(box, 0, 1):
+            if not self.current_shape.can_move_box(box, 0, 1):
                 return True
             return False
 
-    def _game_over(self):
+    def remove_complete_lines(self):
+        shape_boxes_coords = [self.canvas.coords(box)[3] for box 
+                in self.current_shape.boxes]
+        all_boxes = self.canvas.find_all()
+        all_boxes_coords = {k : v for k, v in 
+                zip(all_boxes, [self.canvas.coords(box)[3] 
+                    for box in all_boxes])}
+        lines_to_check = set(shape_boxes_coords)
+        boxes_to_check = dict((k, v) for k, v in all_boxes_coords.iteritems()
+                if any(v == line for line in lines_to_check))
+        counter = Counter()
+        for box in boxes_to_check.values(): counter[box] += 1
+        complete_lines = [k for k, v in counter.iteritems() 
+                if v == (Game.WIDTH/Shape.BOX_SIZE)]
+ 
+        if not complete_lines: return False
+
+        for k, v in boxes_to_check.iteritems():
+            if v in complete_lines:
+                self.canvas.delete(k)
+        #TODO Should ONLY move boxes ABOVE the complete line
+        #TODO Would be cooler if the line flashed or something
+        for box in self.canvas.find_all():
+            self.canvas.move(box, 0, Shape.BOX_SIZE)
+        return len(complete_lines)
+
+    def game_over(self):
             self.canvas.delete(tk.ALL)
             tkMessageBox.showinfo(
                     "Game Over", 
@@ -126,7 +158,7 @@ class Shape:
            
     def move(self, x, y):
         '''Moves this shape (x, y) boxes.'''
-        if not self._can_move_shape(x, y): 
+        if not self.can_move_shape(x, y): 
             return False         
         else:
             for box in self.boxes: 
@@ -135,7 +167,7 @@ class Shape:
 
     def fall(self):
         '''Moves this shape one box-length down.'''
-        if not self._can_move_shape(0, 1):
+        if not self.can_move_shape(0, 1):
             return False
         else:
             for box in self.boxes:
@@ -160,7 +192,7 @@ class Shape:
         # Check if shape can legally move
         for box in boxes:
             x_move, y_move = get_move_coords(box)
-            if not self._can_move_box(box, x_move, y_move): 
+            if not self.can_move_box(box, x_move, y_move): 
                 return False
             
         # Move shape
@@ -172,7 +204,7 @@ class Shape:
 
         return True
 
-    def _can_move_box(self, box, x, y):
+    def can_move_box(self, box, x, y):
         '''Check if box can move (x, y) boxes.'''
         x = x * Shape.BOX_SIZE
         y = y * Shape.BOX_SIZE
@@ -196,10 +228,10 @@ class Shape:
         return True
 
 
-    def _can_move_shape(self, x, y):
+    def can_move_shape(self, x, y):
         '''Check if the shape can move (x, y) boxes.'''
         for box in self.boxes:
-            if not self._can_move_box(box, x, y): return False
+            if not self.can_move_box(box, x, y): return False
         return True
 
 if __name__ == "__main__":
