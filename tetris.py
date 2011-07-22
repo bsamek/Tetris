@@ -1,22 +1,32 @@
 import Tkinter as tk
-from Tkinter import Button, Canvas, Label, Tk, Toplevel 
+from Tkinter import Canvas, Label, Tk
+import tkMessageBox
 from random import choice
 
 class Game():
     WIDTH = 300
     HEIGHT = 500
-    SPEED = 500
 
     def start(self):
         '''Starts the game.
 
         Creates a window, a canvas, and a first shape. Binds the event handler.
-        Then starts a GUI timer of ms interval SPEED and starts the GUI main 
+        Then starts a GUI timer of ms interval self.speed and starts the GUI main 
         loop.
 
         '''
+        self.level = 1
+        self.score = 0
+        self.speed = 10
+        self.create_new_game = True
+
         self.root = Tk()
         self.root.title("Tetris")
+
+        self.status = Label(self.root, 
+                text="Level: %d, Score: %d" % (self.level, self.score), 
+                font=("Helvetica", 10, "bold"))
+        self.status.pack()
         
         self.canvas = Canvas(
                 self.root, 
@@ -24,13 +34,12 @@ class Game():
                 height=Game.HEIGHT)
         self.canvas.pack()
 
-        self.create_new_game = True
         self.root.bind("<Key>", self.handle_events)
         self.timer()
         self.root.mainloop()
     
     def timer(self):
-        '''Every Game.SPEED ms, attempt to cause the current_shape to fall().
+        '''Every self.speed ms, attempt to cause the current_shape to fall().
 
         If fall() returns False, create a new shape and check if it can fall.
         If it can't, then the game is over.
@@ -46,7 +55,7 @@ class Game():
                 self.create_new_game = True
                 self._game_over()
 
-        self.root.after(Game.SPEED, self.timer)
+        self.root.after(self.speed, self.timer)
 
     def handle_events(self, event):
         '''Handle all user events.'''
@@ -68,7 +77,9 @@ class Game():
 
     def _game_over(self):
             self.canvas.delete(tk.ALL)
-            self.root.wait_window(Dialog(self.root))
+            tkMessageBox.showinfo(
+                    "Game Over", 
+                    "You scored %d points." % self.score)
 
 class Shape:
     '''Defines a tetris shape.'''
@@ -190,18 +201,6 @@ class Shape:
         for box in self.boxes:
             if not self._can_move_box(box, x, y): return False
         return True
-     
-class Dialog(Toplevel):
-    def __init__(self, master):
-        Toplevel.__init__(self)
-
-        message = "Game over.\nYou scored [points] points."
-        self.label = Label(self, text=message, font=("Helvetica", 10, "bold"))
-        self.label.pack()
-
-        #TODO Figure out the command to use here.
-        self.button = Button(self, text="New Game", command=exit)
-        self.button.pack()
 
 if __name__ == "__main__":
     game = Game()
