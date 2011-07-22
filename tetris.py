@@ -1,4 +1,5 @@
 import Tkinter as tk
+from Tkinter import Button, Canvas, Label, Tk, Toplevel 
 from random import choice
 
 class Game():
@@ -14,17 +15,16 @@ class Game():
         loop.
 
         '''
-        self.root = tk.Tk()
+        self.root = Tk()
         self.root.title("Tetris")
         
-        self.canvas = tk.Canvas(
+        self.canvas = Canvas(
                 self.root, 
                 width=Game.WIDTH, 
                 height=Game.HEIGHT)
         self.canvas.pack()
 
-        self.current_shape = self.create_shape()
-
+        self.create_new_game = True
         self.root.bind("<Key>", self.handle_events)
         self.timer()
         self.root.mainloop()
@@ -32,16 +32,21 @@ class Game():
     def timer(self):
         '''Every Game.SPEED ms, attempt to cause the current_shape to fall().
 
-        If fall() returns False, create a new shape.
+        If fall() returns False, create a new shape and check if it can fall.
+        If it can't, then the game is over.
         
         '''
-        self.root.after(Game.SPEED, self.timer)
+        if self.create_new_game == True:
+            self.current_shape = Shape(self.canvas)
+            self.create_new_game = False
+
         if not self.current_shape.fall():
-            self.current_shape = self.create_shape()
-        
-    def create_shape(self):
-        '''Create a new shape.'''
-        return Shape(self.canvas)
+            self.current_shape = Shape(self.canvas)
+            if self._is_game_over(): 
+                self.create_new_game = True
+                self._game_over()
+
+        self.root.after(Game.SPEED, self.timer)
 
     def handle_events(self, event):
         '''Handle all user events.'''
@@ -49,6 +54,21 @@ class Game():
         if event.keysym == "Right": self.current_shape.move(1, 0)
         if event.keysym == "Down": self.current_shape.move(0, 1)
         if event.keysym == "Up": self.current_shape.rotate()
+
+    def _is_game_over(self):
+        '''Check if a newly created shape is able to fall.
+
+        If it can't fall, then the game is over.
+
+        '''
+        for box in self.current_shape.boxes:
+            if not self.current_shape._can_move_box(box, 0, 1):
+                return True
+            return False
+
+    def _game_over(self):
+            self.canvas.delete(tk.ALL)
+            self.root.wait_window(Dialog(self.root))
 
 class Shape:
     '''Defines a tetris shape.'''
@@ -92,36 +112,7 @@ class Shape:
                 fill=self.color)
             self.boxes.append(box)
 
-    def _can_move_box(self, box, x, y):
-        '''Check if box can move (x, y) boxes.'''
-        x = x * Shape.BOX_SIZE
-        y = y * Shape.BOX_SIZE
-        coords = self.canvas.coords(box)
-        
-        # Returns False if moving the box would overrun the screen
-        if coords[3] + y > Game.HEIGHT: return False
-        if coords[0] + x < 0: return False
-        if coords[2] + x > Game.WIDTH: return False
-
-        # Returns False if moving box (x, y) would overlap another box
-        overlap = set(self.canvas.find_overlapping(
-                (coords[0] + coords[2]) / 2 + x, 
-                (coords[1] + coords[3]) / 2 + y, 
-                (coords[0] + coords[2]) / 2 + x,
-                (coords[1] + coords[3]) / 2 + y
-                ))
-        other_items = set(self.canvas.find_all()) - set(self.boxes)
-        if overlap & other_items: return False
-
-        return True
-
-
-    def _can_move_shape(self, x, y):
-        '''Check if the shape can move (x, y) boxes.'''
-        for box in self.boxes:
-            if not self._can_move_box(box, x, y): return False
-        return True
-            
+           
     def move(self, x, y):
         '''Moves this shape (x, y) boxes.'''
         if not self._can_move_shape(x, y): 
@@ -169,6 +160,48 @@ class Shape:
                     y_move * self.BOX_SIZE)
 
         return True
+
+    def _can_move_box(self, box, x, y):
+        '''Check if box can move (x, y) boxes.'''
+        x = x * Shape.BOX_SIZE
+        y = y * Shape.BOX_SIZE
+        coords = self.canvas.coords(box)
+        
+        # Returns False if moving the box would overrun the screen
+        if coords[3] + y > Game.HEIGHT: return False
+        if coords[0] + x < 0: return False
+        if coords[2] + x > Game.WIDTH: return False
+
+        # Returns False if moving box (x, y) would overlap another box
+        overlap = set(self.canvas.find_overlapping(
+                (coords[0] + coords[2]) / 2 + x, 
+                (coords[1] + coords[3]) / 2 + y, 
+                (coords[0] + coords[2]) / 2 + x,
+                (coords[1] + coords[3]) / 2 + y
+                ))
+        other_items = set(self.canvas.find_all()) - set(self.boxes)
+        if overlap & other_items: return False
+
+        return True
+
+
+    def _can_move_shape(self, x, y):
+        '''Check if the shape can move (x, y) boxes.'''
+        for box in self.boxes:
+            if not self._can_move_box(box, x, y): return False
+        return True
+     
+class Dialog(Toplevel):
+    def __init__(self, master):
+        Toplevel.__init__(self)
+
+        message = "Game over.\nYou scored [points] points."
+        self.label = Label(self, text=message, font=("Helvetica", 10, "bold"))
+        self.label.pack()
+
+        #TODO Figure out the command to use here.
+        self.button = Button(self, text="New Game", command=exit)
+        self.button.pack()
 
 if __name__ == "__main__":
     game = Game()
