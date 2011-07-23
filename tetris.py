@@ -1,3 +1,4 @@
+import Tkinter
 from Tkinter import Canvas, Label, Tk
 import tkMessageBox
 
@@ -79,7 +80,7 @@ class Game():
         for box in self.current_shape.boxes:
             if not self.current_shape.can_move_box(box, 0, 1):
                 return True
-            return False
+        return False
 
     def remove_complete_lines(self):
         shape_boxes_coords = [self.canvas.coords(box)[3] for box 
@@ -108,7 +109,7 @@ class Game():
         return len(complete_lines)
 
     def game_over(self):
-            self.canvas.delete(tk.ALL)
+            self.canvas.delete(Tkinter.ALL)
             tkMessageBox.showinfo(
                     "Game Over", 
                     "You scored %d points." % self.score)
