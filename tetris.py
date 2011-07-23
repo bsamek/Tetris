@@ -102,10 +102,13 @@ class Game():
         for k, v in boxes_to_check.iteritems():
             if v in complete_lines:
                 self.canvas.delete(k)
-        #TODO Should ONLY move boxes ABOVE the complete line
+                del all_boxes_coords[k]
+                
         #TODO Would be cooler if the line flashed or something
-        for box in self.canvas.find_all():
-            self.canvas.move(box, 0, Shape.BOX_SIZE)
+        for (box, coords) in all_boxes_coords.iteritems():
+            for line in complete_lines:
+                if coords < line:
+                    self.canvas.move(box, 0, Shape.BOX_SIZE)
         return len(complete_lines)
 
     def game_over(self):
