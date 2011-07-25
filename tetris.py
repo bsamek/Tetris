@@ -23,6 +23,7 @@ class Game():
         self.level = 1
         self.score = 0
         self.speed = 500
+        self.counter = 0
         self.create_new_game = True
 
         self.root = Tk()
@@ -68,8 +69,14 @@ class Game():
                 self.create_new_game = True
                 self.game_over()
 
-            self.speed -= 1
-
+            self.counter += 1
+            if self.counter == 10:
+                self.level += 1
+                self.speed -= 20
+                self.counter = 0
+                self.status_var.set("Level: %d, Score: %d" % 
+                        (self.level, self.score))
+        
         self.root.after(self.speed, self.timer)
 
     def handle_events(self, event):
