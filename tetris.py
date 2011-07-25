@@ -1,5 +1,5 @@
 import Tkinter
-from Tkinter import Canvas, Label, Tk
+from Tkinter import Canvas, Label, Tk, StringVar
 import tkMessageBox
 
 from random import choice
@@ -28,8 +28,10 @@ class Game():
         self.root = Tk()
         self.root.title("Tetris")
 
+        self.status_var = StringVar() 
+        self.status_var.set("Level: 1, Score: 0")
         self.status = Label(self.root, 
-                text="Level: %d, Score: %d" % (self.level, self.score), 
+                textvariable=self.status_var, 
                 font=("Helvetica", 10, "bold"))
         self.status.pack()
         
@@ -55,12 +57,18 @@ class Game():
             self.create_new_game = False
 
         if not self.current_shape.fall():
-            self.remove_complete_lines()
+            lines = self.remove_complete_lines()
+            if lines:
+                self.score += 10 * self.level**2 * lines
+                self.status_var.set("Level: %d, Score: %d" % 
+                        (self.level, self.score))
 
             self.current_shape = Shape(self.canvas)
             if self.is_game_over(): 
                 self.create_new_game = True
                 self.game_over()
+
+            self.speed -= 1
 
         self.root.after(self.speed, self.timer)
 
