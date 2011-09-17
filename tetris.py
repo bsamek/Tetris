@@ -20,6 +20,13 @@ class Game():
         #TODO start() needs to be refactored so that the creation of the
         # window, label, and canvas are independent from setting them to
         # defaults and starting the game.
+        #
+        # There should also be a way for the user to restart and pause
+        # the game if he or she wishes.
+        #
+        # It's a little weird that level is based only on time and that
+        # as a result it increases faster and faster. Wouldn't it make
+        # more sense for level to be a result of completed lines?
         self.level = 1
         self.score = 0
         self.speed = 500
@@ -60,17 +67,30 @@ class Game():
         if not self.current_shape.fall():
             lines = self.remove_complete_lines()
             if lines:
-                self.score += 10 * self.level**2 * lines
+                self.score += 10 * self.level**2 * lines**2
                 self.status_var.set("Level: %d, Score: %d" % 
                         (self.level, self.score))
 
             self.current_shape = Shape(self.canvas)
             if self.is_game_over(): 
+                #TODO This is a problem. You rely on the timer method to
+                # create a new game rather than creating it here. As a 
+                # result, there is an intermittent error where the user
+                # event keypress Down eventually causes can_move_box
+                # to throw an IndexError, since the current shape has
+                # no boxes. Instead, you need to cleanly start a new
+                # game. I think refactoring start() might help a lot
+                # here.
+                #
+                # Furthermore, starting a new game currently doesn't reset
+                # the levels. You should place all your starting constants
+                # in the same place so it's clear what needs to be reset
+                # when.
                 self.create_new_game = True
                 self.game_over()
 
             self.counter += 1
-            if self.counter == 10:
+            if self.counter == 5:
                 self.level += 1
                 self.speed -= 20
                 self.counter = 0
